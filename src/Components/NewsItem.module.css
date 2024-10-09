@@ -1,0 +1,65 @@
+.mainCard{
+    display: inline-flex;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    overflow: hidden;
+    padding:  1% 2%;
+}
+.mainCard .cardBody{
+    max-width: 315px;
+    background-color: #212529;
+    padding: 1.1rem;
+    border-radius: 7px;
+    color: whitesmoke;
+    
+}
+
+.cardBody .cardImg{
+    max-width: 275px;
+    max-height: 280px;
+    object-fit: contain;
+    border-radius: 7px;
+}
+.cardBody .cardInner{
+    margin: 0.9rem;
+}
+
+.cardBody .cardTitle{
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.cardBody .cardLink{
+   background-color : #0d6efd;
+   color: whitesmoke;
+   text-decoration: none;
+   padding: 0.5rem;
+   font-weight: 600;
+   border-radius: 7px;
+}
+
+.cardBody .cardLink:hover,
+.cardBody .cardLink:active{
+    background-color: #0353cb;
+}
+
+.footer{
+    background-color: #212529;
+    padding: 0.4rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: whitesmoke;
+    flex-wrap: wrap;
+}
+.footer .footerLogo a{
+    text-decoration: none;
+    font-weight: 700;
+    text-align: center;
+    font-size: 2.1rem;
+}
+.footer .copyright p{
+    font-size: 1.1rem;
+}
