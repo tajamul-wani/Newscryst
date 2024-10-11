@@ -1,4 +1,4 @@
-import React from 'react'
+
 import styles from './NewsItem.module.css'
 const Footer = () => {
   return (

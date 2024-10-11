@@ -11,11 +11,10 @@ const NewsItem = ({title, description, src, url}) => {
             <a href={url} className={styles.cardLink}target="_blank">Read more</a>
             </div>
     </div>
-
     </section>
-  
-   
+
   )
 }
+
 
 export default NewsItem

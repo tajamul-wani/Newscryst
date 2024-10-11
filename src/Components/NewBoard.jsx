@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import NewsItem from "./NewsItem";
+import PropTypes from "prop-types";
 
 const NewBoard = ({category}) => {
     const [articles, setArticles] = useState([]);
@@ -29,6 +30,12 @@ const NewBoard = ({category}) => {
       
     </div>
   )
+}
+NewsItem.propTypes = {
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string.isRequired,
+  src: PropTypes.string.isRequired,
+  url: PropTypes.string.isRequired
 }
 
 export default NewBoard
