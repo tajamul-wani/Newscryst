@@ -1,11 +1,10 @@
-
 import styles from './NewsItem.module.css'
 const Footer = () => {
   return (
-    <div className={styles.footer}>
-        <footer>
+    
+        <footer className={styles.footer}>
             <div className={styles.footerLogo}>
-                <a href="#Home">Newscryst</a>
+                <a href="/Newscryst/Components/Navbar.jsx">Newscryst</a>
             </div>
             <div className={styles.copyright}>
                 <p>All Rights Reserved @ Tajamul Wani</p>
@@ -13,7 +12,6 @@ const Footer = () => {
             
         </footer>
       
-    </div>
   )
 }
 
