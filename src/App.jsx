@@ -4,7 +4,7 @@ import NewBoard from './Components/NewBoard'
 import NewsItem from './Components/NewsItem.jsx'
 import Footer from './Components/Footer.jsx';
 function App() {
-  const [ category, setCategory] = useState('general');
+  const [ category, setCategory] = useState('science');
   
   return(
     <div>

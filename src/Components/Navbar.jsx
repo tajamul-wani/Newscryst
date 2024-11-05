@@ -14,18 +14,6 @@ const Navbar = ({setCategory}) => {
         <li className="nav-item">
           <a className="nav-link" href="https://www.linkedin.com/in/tajamul-wani/" target="_blank">Contact</a>
         </li>
-        {/* <li className="nav-item dropdown">
-          <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Select Country
-          </a>
-          <div className="dropdown-menu" style={{cursor: "pointer"}}>
-            <div className="dropdown-item" onClick={() => setCountry('jp')}>Ireland</div>
-            <div className="dropdown-item" onClick={() => setCountry('mexico')}>Mexico</div>
-            <div className="dropdown-item" onClick={() => setCountry('spain')}>Spain</div>
-            <div className="dropdown-item" onClick={() => setCountry('us')}>India</div>
-          </div>
-        </li> */}
-
       <li className="nav-item dropdown">
           <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             News Category
@@ -35,7 +23,7 @@ const Navbar = ({setCategory}) => {
             <div className="dropdown-item" onClick={() =>setCategory('entertainment')}>Entertainment</div>
             <div className="dropdown-item" onClick={() =>setCategory('sports')}>Sports</div>
             <div className="dropdown-item" onClick={() =>setCategory('Health')}>Health</div>
-            <div className="dropdown-item" onClick={() =>setCategory('science')}>Science</div>
+            <div className="dropdown-item" onClick={() =>setCategory('business')}>Business</div>
           </div>
         </li>
         

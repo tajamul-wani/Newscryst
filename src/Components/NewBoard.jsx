@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import NewsItem from "./NewsItem";
-import PropTypes from "prop-types";
-
-const NewBoard = ({category}) => {
+const NewBoard = ({ category }) => {
     const [articles, setArticles] = useState([]);
     useEffect(
         () => {
@@ -18,24 +16,21 @@ const NewBoard = ({category}) => {
                   article.url
               );
               setArticles(filteredArticles);
+            }).catch(() => {
+              setArticles(new Error("Error, Please check your internet connection or Try again"))
             });
         },[category]);
   return (
     <div>
         <h1 className="text-center">Latest <span className = "badge text-light bg-primary fs-7">News</span></h1>
-        {articles.map((news, index) => {
-            return <NewsItem key = {index} title = {news.title} description = {news.description} src = {news.urlToImage} url = {news.url} />
+          {articles.map((news, index) => {
+            return <NewsItem key = {index} title = {news.title} description = {news.description} src = {news.urlToImage} url = {news.url} source = {news.source.name} />
 
         })}
       
     </div>
   )
 }
-NewsItem.propTypes = {
-  title: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
-  src: PropTypes.string.isRequired,
-  url: PropTypes.string.isRequired
-}
+
 
 export default NewBoard
