@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Noto Sans", sans-serif;
+}
+
+@layer components{
+    .Maincard-body{
+        background-color: theme("colors.primary-bg-color");
+        padding: 0.6rem 0.8rem;
+        color: #fff;
+        display: flex;
+        gap: 1rem 0;
+        flex-direction: column;
+    }
+}
+
+#image{
+    display: block;
+    object-fit: cover;
+}
