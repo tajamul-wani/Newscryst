@@ -22,6 +22,17 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     }
   }, [category, searchTerm, showFavoritesOnly, favorites]);
 
+  const fetchJson = async (url) => {
+    const response = await fetch(url);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.message || `API Error: ${response.status} ${response.statusText || ''}`.trim());
+    }
+
+    return data;
+  };
+
   const fetchNewsByCategory = async (selectedCategory) => {
     setLoading(true);
     setError(null);
@@ -36,13 +47,7 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
       }
 
       const url = `https://newsapi.org/v2/top-headlines?country=us&category=${encodeURIComponent(queryCategory)}&apiKey=${apiKey}`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchJson(url);
 
       if (data.status !== 'ok') {
         throw new Error(data.message || 'Failed to fetch news');
@@ -83,12 +88,7 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
 
       const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&language=en&pageSize=50&apiKey=${apiKey}`;
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchJson(url);
 
       if (data.status !== 'ok') {
         throw new Error(data.message || 'Search failed');

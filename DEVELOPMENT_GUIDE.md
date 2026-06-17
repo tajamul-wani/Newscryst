@@ -29,7 +29,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Your app will open at `http://localhost:5173/Newscryst/`
+Your app will open at `http://localhost:5173/`
 
 ## Available Scripts
 

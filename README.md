@@ -48,7 +48,7 @@ A sleek, modern news aggregation application built with React, Vite, and Tailwin
    npm run dev
    ```
 
-The app will open at `http://localhost:5173/Newscryst/`
+The app will open at `http://localhost:5173/`
 
 ## 📦 Build & Deploy
 
