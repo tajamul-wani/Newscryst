@@ -37,12 +37,20 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     setLoading(true);
     setError(null);
     try {
+      const apiKey = import.meta.env.VITE_NEWS_API;
       const queryCategory = selectedCategory || "general";
-      const url = `/.netlify/functions/fetch-news?category=${encodeURIComponent(queryCategory)}`;
+
+      if (!apiKey) {
+        setError("API key is not configured. Please check your environment variables.");
+        setLoading(false);
+        return;
+      }
+
+      const url = `https://gnews.io/api/v4/top-headlines?category=${encodeURIComponent(queryCategory)}&lang=en&apikey=${apiKey}`;
       const data = await fetchJson(url);
 
-      if (data.status !== 'ok') {
-        throw new Error(data.message || 'Failed to fetch news');
+      if (!data || !data.articles) {
+        throw new Error(data?.errors?.[0] || 'Failed to fetch news');
       }
 
       const filteredArticles = (data.articles || []).filter(
@@ -70,12 +78,20 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     setLoading(true);
     setError(null);
     try {
-      const url = `/.netlify/functions/fetch-news?q=${encodeURIComponent(query)}`;
+      const apiKey = import.meta.env.VITE_NEWS_API;
+
+      if (!apiKey) {
+        setError("API key is not configured. Please check your environment variables.");
+        setLoading(false);
+        return;
+      }
+
+      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&apikey=${apiKey}`;
 
       const data = await fetchJson(url);
 
-      if (data.status !== 'ok') {
-        throw new Error(data.message || 'Search failed');
+      if (!data || !data.articles) {
+        throw new Error(data?.errors?.[0] || 'Search failed');
       }
 
       const filteredArticles = (data.articles || []).filter(

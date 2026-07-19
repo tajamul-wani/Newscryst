@@ -28,7 +28,7 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite }) => {
       {/* Image Container */}
       <div className="relative h-48 overflow-hidden bg-slate-200 dark:bg-slate-700">
         <img 
-          src={imageError ? Image : (news.urlToImage || Image)} 
+          src={imageError ? Image : (news.image || news.urlToImage || Image)} 
           className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" 
           alt={news.title}
           onError={handleImageError}
