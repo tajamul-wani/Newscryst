@@ -46,21 +46,21 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
         return;
       }
 
-      const targetUrl = `https://gnews.io/api/v4/top-headlines?category=${encodeURIComponent(queryCategory)}&lang=en&apikey=${apiKey}`;
-      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      const url = `https://api.currentsapi.services/v1/latest-news?language=en&category=${encodeURIComponent(queryCategory)}&apiKey=${apiKey}`;
       const data = await fetchJson(url);
 
-      if (!data || !data.articles) {
-        throw new Error(data?.errors?.[0] || 'Failed to fetch news');
+      if (!data || !data.news) {
+        throw new Error(data?.error || data?.message || 'Failed to fetch news');
       }
 
-      const filteredArticles = (data.articles || []).filter(
-        (article) =>
-          article.title &&
+      const filteredArticles = (data.news || []).filter(
+        article => 
+          article.title && 
+          article.title.length > 15 &&
+          article.image && 
+          article.image !== 'None' &&
           article.description &&
-          article.url &&
-          article.source &&
-          article.source.name
+          article.description.length > 20
       );
 
       setArticles(filteredArticles);
@@ -87,22 +87,22 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
         return;
       }
 
-      const targetUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&apikey=${apiKey}`;
-      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      const url = `https://api.currentsapi.services/v1/search?language=en&keywords=${encodeURIComponent(query)}&apiKey=${apiKey}`;
 
       const data = await fetchJson(url);
 
-      if (!data || !data.articles) {
-        throw new Error(data?.errors?.[0] || 'Search failed');
+      if (!data || !data.news) {
+        throw new Error(data?.error || data?.message || 'Search failed');
       }
 
-      const filteredArticles = (data.articles || []).filter(
-        (article) =>
-          article.title &&
+      const filteredArticles = (data.news || []).filter(
+        article => 
+          article.title && 
+          article.title.length > 15 &&
+          article.image && 
+          article.image !== 'None' &&
           article.description &&
-          article.url &&
-          article.source &&
-          article.source.name
+          article.description.length > 20
       );
 
       setArticles(filteredArticles);

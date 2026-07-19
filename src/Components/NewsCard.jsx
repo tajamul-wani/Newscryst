@@ -35,7 +35,7 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite }) => {
         />
         {/* Source Badge */}
         <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold shadow-md">
-          {news.source.name.substring(0, 18)}
+          {(news.author || 'Currents News').substring(0, 18)}
         </div>
         
         {/* Favorite Button - Top Left */}
@@ -69,7 +69,7 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite }) => {
 
         {/* Meta Information */}
         <div className="space-y-1 mb-3 text-xs text-slate-500 dark:text-slate-500">
-          <p>📅 {formatDate(news.publishedAt)}</p>
+          <p>📅 {formatDate(news.published)}</p>
           {news.author && (
             <p className="truncate">By {news.author}</p>
           )}
@@ -94,11 +94,9 @@ NewsCard.propTypes = {
     title: PropTypes.string,
     description: PropTypes.string,
     urlToImage: PropTypes.string,
+    image: PropTypes.string,
     url: PropTypes.string.isRequired,
-    source: PropTypes.shape({
-      name: PropTypes.string.isRequired,
-    }).isRequired,
-    publishedAt: PropTypes.string,
+    published: PropTypes.string,
     author: PropTypes.string,
   }).isRequired,
   isFavorite: PropTypes.bool,
