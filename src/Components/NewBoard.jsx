@@ -37,16 +37,8 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     setLoading(true);
     setError(null);
     try {
-      const apiKey = import.meta.env.VITE_NEWS_API;
       const queryCategory = selectedCategory || "general";
-
-      if (!apiKey) {
-        setError("API key is not configured. Please check your environment variables.");
-        setLoading(false);
-        return;
-      }
-
-      const url = `https://newsapi.org/v2/top-headlines?country=us&category=${encodeURIComponent(queryCategory)}&apiKey=${apiKey}`;
+      const url = `/.netlify/functions/fetch-news?category=${encodeURIComponent(queryCategory)}`;
       const data = await fetchJson(url);
 
       if (data.status !== 'ok') {
@@ -78,15 +70,7 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     setLoading(true);
     setError(null);
     try {
-      const apiKey = import.meta.env.VITE_NEWS_API;
-
-      if (!apiKey) {
-        setError("API key is not configured. Please check your environment variables.");
-        setLoading(false);
-        return;
-      }
-
-      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&language=en&pageSize=50&apiKey=${apiKey}`;
+      const url = `/.netlify/functions/fetch-news?q=${encodeURIComponent(query)}`;
 
       const data = await fetchJson(url);
 
