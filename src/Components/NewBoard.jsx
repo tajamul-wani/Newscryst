@@ -46,7 +46,8 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
         return;
       }
 
-      const url = `https://gnews.io/api/v4/top-headlines?category=${encodeURIComponent(queryCategory)}&lang=en&apikey=${apiKey}`;
+      const targetUrl = `https://gnews.io/api/v4/top-headlines?category=${encodeURIComponent(queryCategory)}&lang=en&apikey=${apiKey}`;
+      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
       const data = await fetchJson(url);
 
       if (!data || !data.articles) {
@@ -86,7 +87,8 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
         return;
       }
 
-      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&apikey=${apiKey}`;
+      const targetUrl = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&apikey=${apiKey}`;
+      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
       const data = await fetchJson(url);
 
