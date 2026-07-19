@@ -65,12 +65,12 @@ const Footer = ({ darkMode }) => {
             <p>
               Powered by{' '}
               <a
-                href="https://newsapi.org/"
+                href="https://gnews.io/"
                 className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                NewsAPI
+                GNews API
               </a>
             </p>
             <p>
