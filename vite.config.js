@@ -21,8 +21,5 @@ export default defineConfig({
         }
       }
     }
-  },
-  define: {
-    'process.env.VITE_NEWS_API': JSON.stringify(process.env.VITE_NEWS_API)
   }
 })

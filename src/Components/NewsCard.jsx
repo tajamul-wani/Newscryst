@@ -21,7 +21,7 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite }) => {
 
   return (
     <article 
-      className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col h-full border border-slate-200 dark:border-slate-700"
+      className="glass-panel animate-fade-in hover-glow rounded-lg overflow-hidden shadow-md transition-shadow duration-300 flex flex-col h-full"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >

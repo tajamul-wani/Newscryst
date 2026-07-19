@@ -7,27 +7,19 @@ import ErrorBoundary from './Components/ErrorBoundary.jsx';
 function App() {
   const [category, setCategory] = useState('general');
   const [searchTerm, setSearchTerm] = useState('');
-  const [favorites, setFavorites] = useState([]);
-  const [darkMode, setDarkMode] = useState(false);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-
-  // Load favorites from localStorage on mount
-  useEffect(() => {
+  
+  // Initialize state directly from localStorage to prevent flashing on reload
+  const [favorites, setFavorites] = useState(() => {
     const savedFavorites = localStorage.getItem('newsCrystFavorites');
-    if (savedFavorites) {
-      try {
-        setFavorites(JSON.parse(savedFavorites));
-      } catch (error) {
-        console.error('Error loading favorites:', error);
-      }
-    }
-
-    // Load dark mode preference
+    return savedFavorites ? JSON.parse(savedFavorites) : [];
+  });
+  
+  const [darkMode, setDarkMode] = useState(() => {
     const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode !== null) {
-      setDarkMode(JSON.parse(savedDarkMode));
-    }
-  }, []);
+    return savedDarkMode !== null ? JSON.parse(savedDarkMode) : false; // false = light mode by default
+  });
+  
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // Save favorites to localStorage whenever they change
   useEffect(() => {
