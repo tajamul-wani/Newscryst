@@ -5,9 +5,23 @@ import { useState } from 'react';
 const NewsCard = ({ news, isFavorite, onToggleFavorite }) => {
   const [imageError, setImageError] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   const handleImageError = () => {
     setImageError(true);
+  };
+
+  const getOptimizedImageUrl = (originalUrl) => {
+    if (!originalUrl || originalUrl === 'None') return Image;
+    if (originalUrl.startsWith('/') || originalUrl.startsWith('data:')) return originalUrl;
+    
+    let cleanUrl = originalUrl;
+    if (cleanUrl.startsWith('//')) {
+      cleanUrl = 'https:' + cleanUrl;
+    }
+    
+    // Redirect through images.weserv.nl image resizing proxy: WebP conversion, 450px width, cover fit, quality 75
+    return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=450&h=250&fit=cover&output=webp&q=75`;
   };
 
   const formatDate = (dateString) => {
@@ -26,12 +40,22 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite }) => {
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Image Container */}
-      <div className="relative h-48 overflow-hidden bg-slate-200 dark:bg-slate-700">
+      <div className="relative h-48 overflow-hidden bg-slate-200 dark:bg-slate-800">
+        {/* Card Image Shimmer Loader */}
+        {!isImageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-slate-250 dark:bg-slate-800 animate-pulse flex items-center justify-center text-slate-400 dark:text-slate-600">
+            <span>📰</span>
+          </div>
+        )}
         <img 
-          src={imageError ? Image : (news.image || news.urlToImage || Image)} 
-          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" 
+          src={imageError ? Image : getOptimizedImageUrl(news.image || news.urlToImage)} 
+          className={`h-full w-full object-cover transition-all duration-500 hover:scale-105 ${
+            isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`} 
           alt={news.title}
           onError={handleImageError}
+          onLoad={() => setIsImageLoaded(true)}
+          loading="lazy"
         />
         {/* Source Badge */}
         <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-semibold shadow-md">

@@ -44,6 +44,12 @@ function App() {
     return favorites.some(fav => fav.url === newsUrl);
   };
 
+  const handleCategoryChange = (newCategory) => {
+    setCategory(newCategory);
+    setSearchTerm('');
+    setShowFavoritesOnly(false);
+  };
+
   const handleSearch = (term) => {
     setSearchTerm(term);
     setShowFavoritesOnly(false);
@@ -59,13 +65,15 @@ function App() {
       <div className={darkMode ? 'dark' : ''}>
         <div className={`${darkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'} min-h-screen transition-colors duration-200`}>
           <Navbar 
-            setCategory={setCategory} 
+            category={category}
+            setCategory={handleCategoryChange} 
             darkMode={darkMode}
             setDarkMode={setDarkMode}
             favoritesCount={favorites.length}
             onShowFavorites={handleShowFavorites}
             showingFavorites={showFavoritesOnly}
             onSearch={handleSearch}
+            searchTerm={searchTerm}
           />
           <div className="container-main">
             <NewBoard 
@@ -77,7 +85,7 @@ function App() {
               onToggleFavorite={toggleFavorite}
               darkMode={darkMode}
             />
-            <Footer darkMode={darkMode} />
+            <Footer darkMode={darkMode} setCategory={handleCategoryChange} />
           </div>
         </div>
       </div>
