@@ -26,7 +26,7 @@ NewsCryst is a modern, responsive news aggregator built with **React 18**, **Vit
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/TAJAMUL11/Newscryst.git
+   git clone https://github.com/tajamul-wani/Newscryst.git
    cd Newscryst
    ```
 
