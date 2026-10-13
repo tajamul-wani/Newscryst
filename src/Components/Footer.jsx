@@ -53,7 +53,7 @@ const Footer = ({ darkMode, setCategory }) => {
             <div className="flex items-center gap-5">
               {/* GitHub Link */}
               <a
-                href="https://github.com/TAJAMUL11"
+                href="https://github.com/tajamul-wani"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`transition-all hover:scale-110 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
