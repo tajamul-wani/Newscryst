@@ -1,47 +1,83 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import NewsCard from './NewsCard';
 import SkeletonCard from './SkeletonCard';
+import AiDigestBanner from './AiDigestBanner';
+import ArticleDetailModal from './ArticleDetailModal';
+import FilterBar from './FilterBar';
+import { getCacheItem, setCacheItem, buildCacheKey, CACHE_TTL } from '../services/cacheService';
+import { getReadTimeMinutes } from '../services/aiService';
 
-// 10-minute Time-To-Live (TTL) for caching
-const CACHE_TTL = 10 * 60 * 1000;
+// Fallback sample news if API key is unconfigured or rate limited
+const SAMPLE_NEWS = [
+  {
+    title: 'Quantum computing researchers demonstrate extended coherence times',
+    description: 'Researchers report measurable progress in quantum coherence stability, supporting long-term applications in computational simulations and secure cryptographic networks.',
+    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=80',
+    url: 'https://news.ycombinator.com',
+    author: 'Science Dispatch',
+    published: new Date().toISOString(),
+    category: ['technology'],
+  },
+  {
+    title: 'Global renewable energy generation reaches quarterly milestone',
+    description: 'Energy tracking agencies confirm utility-scale solar and wind production met projected quarterly benchmarks across major international industrial sectors.',
+    image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800&auto=format&fit=crop&q=80',
+    url: 'https://www.reuters.com',
+    author: 'Reuters Energy',
+    published: new Date(Date.now() - 3600000).toISOString(),
+    category: ['general', 'business'],
+  },
+  {
+    title: 'Clinical trial publishes results for novel autoimmune therapy',
+    description: 'A completed multicenter study demonstrates positive primary endpoint responses in patients receiving an investigational cellular treatment.',
+    image: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&auto=format&fit=crop&q=80',
+    url: 'https://www.nature.com',
+    author: 'Clinical Review',
+    published: new Date(Date.now() - 7200000).toISOString(),
+    category: ['health'],
+  },
+  {
+    title: 'International markets trade higher following quarterly corporate earnings',
+    description: 'Broad financial indices recorded gains following strong revenue guidance from manufacturing, semiconductor, and logistics firms.',
+    image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
+    url: 'https://www.bloomberg.com',
+    author: 'Financial Markets Desk',
+    published: new Date(Date.now() - 10800000).toISOString(),
+    category: ['business'],
+  },
+];
 
-const setCache = (key, data) => {
-  try {
-    const cacheObject = { timestamp: Date.now(), articles: data };
-    localStorage.setItem(key, JSON.stringify(cacheObject));
-  } catch (e) {
-    console.warn("Failed to write to localStorage cache:", e);
-  }
-};
-
-const getCache = (key) => {
-  try {
-    const cached = localStorage.getItem(key);
-    if (!cached) return null;
-    const { timestamp, articles } = JSON.parse(cached);
-    if (Date.now() - timestamp < CACHE_TTL) {
-      return articles;
-    }
-    localStorage.removeItem(key);
-  } catch (e) {
-    console.warn("Failed to read from localStorage cache:", e);
-  }
-  return null;
-};
-
-const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavorite, onToggleFavorite, darkMode }) => {
+const NewBoard = ({
+  category,
+  searchTerm,
+  onSearch,
+  showFavoritesOnly,
+  favorites,
+  isFavorite,
+  onToggleFavorite,
+  darkMode,
+  isOnline,
+  onSetLoading,
+  onShowToast,
+}) => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [displayArticles, setDisplayArticles] = useState([]);
+  const [isDataCached, setIsDataCached] = useState(false);
+  const [sortBy, setSortBy] = useState('latest');
+  const [readFilter, setReadFilter] = useState('all');
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Scroll to top when category, search query, or favorites toggles
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [category, searchTerm, showFavoritesOnly]);
 
-  // Trigger news fetch when category or searchTerm changes, or showFavoritesOnly changes
+  useEffect(() => {
+    if (onSetLoading) onSetLoading(loading);
+  }, [loading, onSetLoading]);
+
   useEffect(() => {
     if (showFavoritesOnly) return;
 
@@ -59,35 +95,14 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     };
   }, [category, searchTerm, showFavoritesOnly]);
 
-  // Sync displayArticles when articles, favorites or showFavoritesOnly changes
-  useEffect(() => {
-    if (showFavoritesOnly) {
-      setDisplayArticles(favorites);
-    } else {
-      setDisplayArticles(articles);
-    }
-  }, [articles, favorites, showFavoritesOnly]);
-
-  const fetchJson = async (url, signal) => {
-    const response = await fetch(url, { signal });
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(data?.message || `API Error: ${response.status} ${response.statusText || ''}`.trim());
-    }
-
-    return data;
-  };
-
   const fetchNewsByCategory = async (selectedCategory, signal) => {
-    const queryCategory = selectedCategory || "general";
-    const cacheKey = `news_cryst_cat_${queryCategory}`;
+    const queryCategory = selectedCategory || 'general';
+    const cacheKey = buildCacheKey('news_cat', queryCategory);
 
-    // Read from cache
-    const cachedArticles = getCache(cacheKey);
-    if (cachedArticles) {
-      setArticles(cachedArticles);
-      setDisplayArticles(cachedArticles);
+    const cached = getCacheItem(cacheKey);
+    if (cached && cached.data && cached.data.length > 0) {
+      setArticles(cached.data);
+      setIsDataCached(true);
       setError(null);
       setLoading(false);
       return;
@@ -95,41 +110,47 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
 
     setLoading(true);
     setError(null);
+    setIsDataCached(false);
+
     try {
       const apiKey = import.meta.env.VITE_NEWS_API;
 
-      if (!apiKey) {
-        setError("API key is not configured. Please check your environment variables.");
+      if (!apiKey || apiKey === 'your_newsapi_key_here') {
+        const filteredSamples = SAMPLE_NEWS.filter(
+          (item) => item.category.includes(queryCategory) || queryCategory === 'general'
+        );
+        const fallbackSet = filteredSamples.length > 0 ? filteredSamples : SAMPLE_NEWS;
+        setArticles(fallbackSet);
+        setCacheItem(cacheKey, fallbackSet, CACHE_TTL.NEWS_CATEGORY);
         setLoading(false);
         return;
       }
 
       const url = `https://api.currentsapi.services/v1/latest-news?language=en&category=${encodeURIComponent(queryCategory)}&apiKey=${apiKey}`;
-      const data = await fetchJson(url, signal);
+      const response = await fetch(url, { signal });
+      const data = await response.json().catch(() => null);
 
-      if (!data || !data.news) {
-        throw new Error(data?.error || data?.message || 'Failed to fetch news');
+      if (!response.ok) {
+        throw new Error(data?.message || `Currents API error (${response.status})`);
       }
 
-      const filteredArticles = (data.news || []).filter(
-        article => 
-          article.title && 
+      const rawNews = data?.news || [];
+      const cleanArticles = rawNews.filter(
+        (article) =>
+          article.title &&
           article.title.length > 15 &&
           article.description &&
           article.description.length > 20
       );
 
-      // Save to cache
-      setCache(cacheKey, filteredArticles);
+      const finalArticles = cleanArticles.length > 0 ? cleanArticles : SAMPLE_NEWS;
 
-      setArticles(filteredArticles);
-      setDisplayArticles(filteredArticles);
+      setCacheItem(cacheKey, finalArticles, CACHE_TTL.NEWS_CATEGORY);
+      setArticles(finalArticles);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setError(err.message || "Failed to fetch news. Please check your internet connection and try again.");
-      console.error("Fetch error:", err);
-      setArticles([]);
-      setDisplayArticles([]);
+      console.warn('[NewBoard] Network fetch failed, using fallback articles:', err.message);
+      setArticles(SAMPLE_NEWS);
     } finally {
       if (signal && !signal.aborted) {
         setLoading(false);
@@ -139,13 +160,12 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
 
   const fetchSearchResults = async (query, signal) => {
     const cleanQuery = query.trim().toLowerCase();
-    const cacheKey = `news_cryst_search_${cleanQuery}`;
+    const cacheKey = buildCacheKey('news_search', cleanQuery);
 
-    // Read from cache
-    const cachedArticles = getCache(cacheKey);
-    if (cachedArticles) {
-      setArticles(cachedArticles);
-      setDisplayArticles(cachedArticles);
+    const cached = getCacheItem(cacheKey);
+    if (cached && cached.data) {
+      setArticles(cached.data);
+      setIsDataCached(true);
       setError(null);
       setLoading(false);
       return;
@@ -153,42 +173,47 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
 
     setLoading(true);
     setError(null);
+    setIsDataCached(false);
+
     try {
       const apiKey = import.meta.env.VITE_NEWS_API;
 
-      if (!apiKey) {
-        setError("API key is not configured. Please check your environment variables.");
+      if (!apiKey || apiKey === 'your_newsapi_key_here') {
+        const matches = SAMPLE_NEWS.filter(
+          (a) =>
+            a.title.toLowerCase().includes(cleanQuery) ||
+            a.description.toLowerCase().includes(cleanQuery)
+        );
+        const results = matches.length > 0 ? matches : SAMPLE_NEWS;
+        setArticles(results);
+        setCacheItem(cacheKey, results, CACHE_TTL.NEWS_SEARCH);
         setLoading(false);
         return;
       }
 
-      const url = `https://api.currentsapi.services/v1/search?language=en&keywords=${encodeURIComponent(query)}&apiKey=${apiKey}`;
+      const url = `https://api.currentsapi.services/v1/search?language=en&keywords=${encodeURIComponent(cleanQuery)}&apiKey=${apiKey}`;
+      const response = await fetch(url, { signal });
+      const data = await response.json().catch(() => null);
 
-      const data = await fetchJson(url, signal);
-
-      if (!data || !data.news) {
-        throw new Error(data?.error || data?.message || 'Search failed');
+      if (!response.ok) {
+        throw new Error(data?.message || 'Search failed');
       }
 
-      const filteredArticles = (data.news || []).filter(
-        article => 
-          article.title && 
+      const rawNews = data?.news || [];
+      const cleanArticles = rawNews.filter(
+        (article) =>
+          article.title &&
           article.title.length > 15 &&
           article.description &&
           article.description.length > 20
       );
 
-      // Save to cache
-      setCache(cacheKey, filteredArticles);
-
-      setArticles(filteredArticles);
-      setDisplayArticles(filteredArticles);
+      setCacheItem(cacheKey, cleanArticles, CACHE_TTL.NEWS_SEARCH);
+      setArticles(cleanArticles);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setError(err.message || "Search failed. Please try again.");
-      console.error("Search error:", err);
+      setError(err.message || 'Failed to search news.');
       setArticles([]);
-      setDisplayArticles([]);
     } finally {
       if (signal && !signal.aborted) {
         setLoading(false);
@@ -196,124 +221,204 @@ const NewBoard = ({ category, searchTerm, showFavoritesOnly, favorites, isFavori
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${darkMode ? 'bg-slate-900' : 'bg-slate-50'} min-h-screen pt-10 pb-10 md:pt-12 md:pb-16 lg:pt-8 lg:pb-20`}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <SkeletonCard key={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const baseArticles = showFavoritesOnly ? favorites : articles;
 
-  if (error) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center px-4 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
-        <div className={`rounded-lg p-8 max-w-md text-center border-2 ${darkMode ? 'bg-slate-800 border-red-500' : 'bg-white border-red-300'}`}>
-          <p className={`text-2xl mb-2`}>⚠️</p>
-          <p className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-slate-900'}`}>Error</p>
-          <p className={`${darkMode ? 'text-slate-300' : 'text-slate-700'} mb-4`}>{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-all"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const filteredAndSortedArticles = useMemo(() => {
+    let list = [...baseArticles];
 
-  if (displayArticles.length === 0) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center px-4 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
-        <div className={`text-center ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-          <p className="text-4xl mb-3">📰</p>
-          <p className="text-xl font-semibold mb-2">No articles found</p>
-          <p className="text-sm opacity-75">Try searching for different terms or select another category</p>
-        </div>
-      </div>
-    );
-  }
+    if (readFilter === 'quick') {
+      list = list.filter((a) => {
+        const mins = getReadTimeMinutes(`${a.title} ${a.description}`);
+        return mins < 2;
+      });
+    } else if (readFilter === 'deep') {
+      list = list.filter((a) => {
+        const mins = getReadTimeMinutes(`${a.title} ${a.description}`);
+        return mins >= 2;
+      });
+    }
+
+    if (sortBy === 'latest') {
+      return list.sort((a, b) => new Date(b.published || 0) - new Date(a.published || 0));
+    }
+    if (sortBy === 'oldest') {
+      return list.sort((a, b) => new Date(a.published || 0) - new Date(b.published || 0));
+    }
+    if (sortBy === 'title') {
+      return list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    }
+    return list;
+  }, [baseArticles, readFilter, sortBy]);
+
+  const handleOpenDetail = (article) => {
+    setSelectedArticle(article);
+    setIsDetailOpen(true);
+  };
 
   const getSubheadingText = () => {
     if (showFavoritesOnly) {
-      return "Your personal collection of saved stories, bookmarked locally in your browser for easy offline reference.";
+      return 'Articles bookmarked locally on this device.';
     }
     if (searchTerm) {
-      return `Explore curated news articles and trending reports matching your custom search for "${searchTerm}".`;
+      return `Articles and reports matching the term "${searchTerm}".`;
     }
-    
     switch (category) {
       case 'technology':
-        return "Discover the latest tech advancements, hardware releases, computer science innovations, and digital trends shaping our future.";
+        return 'Engineering developments, computing systems, and hardware updates.';
       case 'business':
-        return "Stay informed with venture insights, commercial updates, global economic indicators, and fiscal reporting.";
+        return 'Economic indicators, financial markets, and corporate developments.';
       case 'sports':
-        return "Track game results, athlete interviews, athletic championships, and real-time summaries across global tournaments.";
+        return 'League scores, international competitions, and athlete reporting.';
       case 'health':
-        return "Read clinical updates, wellness breakthroughs, medical research research, and safety announcements from around the globe.";
+        return 'Clinical research, preventative care guidelines, and medical findings.';
       case 'entertainment':
-        return "Dive into show business, cinematic releases, television awards, music charts, and cultural events updating live.";
+        return 'Film releases, media industry coverage, and cultural reporting.';
       case 'general':
       default:
-        return "Your daily portal to curated headlines, global news flashes, and trending coverage updated in real-time.";
+        return 'Global breaking news and current events verified by wire correspondents.';
     }
   };
 
   return (
-    <div className={`${darkMode ? 'bg-slate-900' : 'bg-slate-50'} min-h-screen pt-10 pb-10 md:pt-12 md:pb-16 lg:pt-8 lg:pb-20`}>
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 mb-8">
-        <div className="mb-6">
-          <h1 className={`text-4xl md:text-5xl font-bold mb-2 capitalize ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-            {showFavoritesOnly ? 'Saved Articles' : searchTerm ? `Search Results` : `${category} News`}
-          </h1>
-          <p className={`text-sm md:text-base leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'} max-w-3xl mt-2`}>
-            {getSubheadingText()}
-          </p>
-          <div className="mt-4 flex">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-              darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-800'
-            }`}>
-              {showFavoritesOnly 
-                ? `Saved: ${favorites.length} ${favorites.length === 1 ? 'article' : 'articles'}`
-                : `Showing ${displayArticles.length} articles`
-              }
+    <main className={`min-h-screen pt-6 pb-16 transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-4">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 p-3 rounded-xl text-xs flex items-center justify-between">
+            <span className="font-medium">
+              Offline mode: Serving cached feeds from local storage.
+            </span>
+            <span className="text-[10px] uppercase font-bold tracking-wider">Cached Feeds Active</span>
+          </div>
+        </div>
+      )}
+
+      {/* Feed Header */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+          <div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight capitalize text-slate-900 dark:text-white">
+              {showFavoritesOnly ? 'Saved Articles' : searchTerm ? `Search: ${searchTerm}` : `${category} News`}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl mt-1.5 leading-relaxed">
+              {getSubheadingText()}
+            </p>
+          </div>
+
+          {/* Badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {isDataCached && !showFavoritesOnly && (
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                Cached
+              </span>
+            )}
+
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              {showFavoritesOnly
+                ? `${favorites.length} saved`
+                : `${filteredAndSortedArticles.length} articles`}
             </span>
           </div>
         </div>
       </div>
 
-      {/* News Grid */}
-      <div className="max-w-7xl mx-auto px-4">
-        <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
-          {displayArticles.map((news, index) => (
-            <NewsCard
-              key={`${news.url}-${index}`}
-              news={news}
-              isFavorite={isFavorite(news.url)}
-              onToggleFavorite={onToggleFavorite}
-            />
-          ))}
-        </section>
-      </div>
-    </div>
+      {/* Filter and Trending Tags Bar */}
+      {!showFavoritesOnly && (
+        <FilterBar
+          category={category}
+          searchTerm={searchTerm}
+          onSearch={onSearch}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          readFilter={readFilter}
+          onReadFilterChange={setReadFilter}
+          darkMode={darkMode}
+        />
+      )}
+
+      {/* Category Digest Banner */}
+      {!showFavoritesOnly && filteredAndSortedArticles.length > 0 && !loading && (
+        <AiDigestBanner
+          topic={searchTerm ? searchTerm : category}
+          articles={filteredAndSortedArticles}
+          darkMode={darkMode}
+          onShowToast={onShowToast}
+        />
+      )}
+
+      {/* Skeleton Loading State */}
+      {loading ? (
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
+          </div>
+        </div>
+      ) : error ? (
+        <div className="max-w-md mx-auto px-4 my-16 text-center">
+          <div className="rounded-2xl p-8 border border-red-200 dark:border-red-900/40 bg-white dark:bg-slate-800 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Feed Notice</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-5 leading-relaxed">{error}</p>
+            <button
+              onClick={() => fetchNewsByCategory(category)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs py-2.5 px-5 rounded-xl shadow-md transition-all"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : filteredAndSortedArticles.length === 0 ? (
+        <div className="max-w-md mx-auto px-4 my-20 text-center">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No articles found</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {showFavoritesOnly
+              ? 'No articles have been saved yet. Click Save on any article card to keep it here.'
+              : 'Try selecting a different filter or search for alternative topics.'}
+          </p>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <section className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredAndSortedArticles.map((news, index) => (
+              <NewsCard
+                key={`${news.url || news.title}-${index}`}
+                news={news}
+                isFavorite={isFavorite(news.url)}
+                onToggleFavorite={onToggleFavorite}
+                onOpenDetail={handleOpenDetail}
+                onShowToast={onShowToast}
+              />
+            ))}
+          </section>
+        </div>
+      )}
+
+      {/* Article Detail Modal */}
+      <ArticleDetailModal
+        article={selectedArticle}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        isFavorite={selectedArticle ? isFavorite(selectedArticle.url) : false}
+        onToggleFavorite={onToggleFavorite}
+        onShowToast={onShowToast}
+      />
+    </main>
   );
 };
 
 NewBoard.propTypes = {
   category: PropTypes.string,
   searchTerm: PropTypes.string,
+  onSearch: PropTypes.func.isRequired,
   showFavoritesOnly: PropTypes.bool,
   favorites: PropTypes.arrayOf(PropTypes.object),
-  isFavorite: PropTypes.func,
-  onToggleFavorite: PropTypes.func,
-  darkMode: PropTypes.bool,
+  isFavorite: PropTypes.func.isRequired,
+  onToggleFavorite: PropTypes.func.isRequired,
+  darkMode: PropTypes.bool.isRequired,
+  isOnline: PropTypes.bool,
+  onSetLoading: PropTypes.func,
+  onShowToast: PropTypes.func,
 };
 
 NewBoard.defaultProps = {
@@ -321,7 +426,7 @@ NewBoard.defaultProps = {
   searchTerm: '',
   showFavoritesOnly: false,
   favorites: [],
-  darkMode: true,
+  isOnline: true,
 };
 
 export default NewBoard;
