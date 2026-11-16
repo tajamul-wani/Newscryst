@@ -66,7 +66,6 @@ npm install
 Create a .env.local file in the project root:
 ```env
 CURRENTS_API_KEY=your_currents_api_token
-VITE_GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### Running Locally

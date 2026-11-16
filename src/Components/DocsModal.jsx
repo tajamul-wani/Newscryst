@@ -297,7 +297,6 @@ const DocsModal = ({ isOpen, onClose }) => {
                 </p>
                 <pre className="mt-2 p-3 rounded-lg bg-slate-100 dark:bg-slate-950 font-mono text-xs overflow-x-auto text-blue-600 dark:text-blue-400">
 CURRENTS_API_KEY=your_currents_api_token
-VITE_GEMINI_API_KEY=your_gemini_api_key
                 </pre>
               </div>
             </div>

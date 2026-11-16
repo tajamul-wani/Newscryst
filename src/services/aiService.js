@@ -11,7 +11,7 @@ import { sanitizeText } from '../utils/security';
 const pendingAiRequests = new Map();
 
 /**
- * Gets the active Gemini API key from environment or user localStorage
+ * Gets the user-provided Gemini API key from localStorage (never bundled from env)
  * @returns {string}
  */
 export const getGeminiApiKey = () => {
@@ -19,7 +19,7 @@ export const getGeminiApiKey = () => {
   if (customKey && customKey.trim()) {
     return customKey.trim();
   }
-  return import.meta.env.VITE_GEMINI_API_KEY || '';
+  return '';
 };
 
 /**
