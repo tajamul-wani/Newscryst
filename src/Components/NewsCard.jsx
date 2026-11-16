@@ -1,14 +1,22 @@
 import PropTypes from 'prop-types';
 import ImageFallback from '../assets/BN.png';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { estimateReadTime, detectTone } from '../services/aiService';
 import { isSafeUrl, getSafeLinkProps } from '../utils/security';
 
-const NewsCard = ({ news, isFavorite, onToggleFavorite, onOpenDetail, onShowToast }) => {
+const NewsCard = ({ news, isFavorite, onToggleFavorite, onOpenDetail, onShowToast, priority }) => {
+  const imgRef = useRef(null);
   const [imageError, setImageError] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
-  const getOptimizedImageUrl = (originalUrl) => {
+  // Handle images already loaded from cache before React attached onLoad
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      setIsImageLoaded(true);
+    }
+  }, []);
+
+  const getOptimizedImageUrl = (originalUrl, width = 500) => {
     if (!originalUrl || originalUrl === 'None') return ImageFallback;
     if (originalUrl.startsWith('/') || originalUrl.startsWith('data:')) return originalUrl;
     
@@ -17,7 +25,7 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite, onOpenDetail, onShowToas
       cleanUrl = 'https:' + cleanUrl;
     }
     
-    return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=500&h=280&fit=cover&output=webp&q=75`;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=${width}&h=${Math.round(width * 0.56)}&fit=cover&output=webp&q=75`;
   };
 
   const formatDate = (dateString) => {
@@ -65,6 +73,7 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite, onOpenDetail, onShowToas
         )}
 
         <img 
+          ref={imgRef}
           src={imageError ? ImageFallback : getOptimizedImageUrl(news.image || news.urlToImage)} 
           className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-105 ${
             isImageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
@@ -72,7 +81,15 @@ const NewsCard = ({ news, isFavorite, onToggleFavorite, onOpenDetail, onShowToas
           alt={news.title || 'News image'}
           onError={() => setImageError(true)}
           onLoad={() => setIsImageLoaded(true)}
-          loading="lazy"
+          srcSet={
+            imageError || !news.image && !news.urlToImage
+              ? undefined
+              : `${getOptimizedImageUrl(news.image || news.urlToImage, 400)} 400w, ${getOptimizedImageUrl(news.image || news.urlToImage, 800)} 800w`
+          }
+          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
+          decoding="async"
         />
 
         {/* Source Badge */}
@@ -177,6 +194,7 @@ NewsCard.propTypes = {
   onToggleFavorite: PropTypes.func.isRequired,
   onOpenDetail: PropTypes.func,
   onShowToast: PropTypes.func,
+  priority: PropTypes.bool,
 };
 
 export default NewsCard;

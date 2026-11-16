@@ -2,11 +2,12 @@ import { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import NewsCard from './NewsCard';
 import SkeletonCard from './SkeletonCard';
-import AiDigestBanner from './AiDigestBanner';
 import ArticleDetailModal from './ArticleDetailModal';
 import FilterBar from './FilterBar';
 import { getCacheItem, setCacheItem, buildCacheKey, CACHE_TTL } from '../services/cacheService';
 import { getReadTimeMinutes } from '../services/aiService';
+
+const PAGE_SIZE = 12;
 
 const NewBoard = ({
   category,
@@ -29,10 +30,15 @@ const NewBoard = ({
   const [readFilter, setReadFilter] = useState('all');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [category, searchTerm, showFavoritesOnly]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [category, searchTerm, showFavoritesOnly, readFilter, sortBy]);
 
   useEffect(() => {
     if (onSetLoading) onSetLoading(loading);
@@ -273,16 +279,6 @@ const NewBoard = ({
         />
       )}
 
-      {/* Category Digest Banner */}
-      {!showFavoritesOnly && filteredAndSortedArticles.length > 0 && !loading && (
-        <AiDigestBanner
-          topic={searchTerm ? searchTerm : category}
-          articles={filteredAndSortedArticles}
-          darkMode={darkMode}
-          onShowToast={onShowToast}
-        />
-      )}
-
       {/* Skeleton Loading State */}
       {loading ? (
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
@@ -317,10 +313,11 @@ const NewBoard = ({
       ) : (
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <section className="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredAndSortedArticles.map((news, index) => (
+            {filteredAndSortedArticles.slice(0, visibleCount).map((news, index) => (
               <NewsCard
                 key={`${news.url || news.title}-${index}`}
                 news={news}
+                priority={index < 4}
                 isFavorite={isFavorite(news.url)}
                 onToggleFavorite={onToggleFavorite}
                 onOpenDetail={handleOpenDetail}
@@ -328,6 +325,20 @@ const NewBoard = ({
               />
             ))}
           </section>
+
+          {visibleCount < filteredAndSortedArticles.length && (
+            <div className="flex flex-col items-center gap-2 mt-8">
+              <button
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-2.5 px-8 rounded-xl shadow-md transition-all"
+              >
+                Load more
+              </button>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Showing {Math.min(visibleCount, filteredAndSortedArticles.length)} of {filteredAndSortedArticles.length}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
