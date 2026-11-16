@@ -8,46 +8,6 @@ import FilterBar from './FilterBar';
 import { getCacheItem, setCacheItem, buildCacheKey, CACHE_TTL } from '../services/cacheService';
 import { getReadTimeMinutes } from '../services/aiService';
 
-// Fallback sample news if API key is unconfigured or rate limited
-const SAMPLE_NEWS = [
-  {
-    title: 'Quantum computing researchers demonstrate extended coherence times',
-    description: 'Researchers report measurable progress in quantum coherence stability, supporting long-term applications in computational simulations and secure cryptographic networks.',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=80',
-    url: 'https://news.ycombinator.com',
-    author: 'Science Dispatch',
-    published: new Date().toISOString(),
-    category: ['technology'],
-  },
-  {
-    title: 'Global renewable energy generation reaches quarterly milestone',
-    description: 'Energy tracking agencies confirm utility-scale solar and wind production met projected quarterly benchmarks across major international industrial sectors.',
-    image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800&auto=format&fit=crop&q=80',
-    url: 'https://www.reuters.com',
-    author: 'Reuters Energy',
-    published: new Date(Date.now() - 3600000).toISOString(),
-    category: ['general', 'business'],
-  },
-  {
-    title: 'Clinical trial publishes results for novel autoimmune therapy',
-    description: 'A completed multicenter study demonstrates positive primary endpoint responses in patients receiving an investigational cellular treatment.',
-    image: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&auto=format&fit=crop&q=80',
-    url: 'https://www.nature.com',
-    author: 'Clinical Review',
-    published: new Date(Date.now() - 7200000).toISOString(),
-    category: ['health'],
-  },
-  {
-    title: 'International markets trade higher following quarterly corporate earnings',
-    description: 'Broad financial indices recorded gains following strong revenue guidance from manufacturing, semiconductor, and logistics firms.',
-    image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
-    url: 'https://www.bloomberg.com',
-    author: 'Financial Markets Desk',
-    published: new Date(Date.now() - 10800000).toISOString(),
-    category: ['business'],
-  },
-];
-
 const NewBoard = ({
   category,
   searchTerm,
@@ -113,25 +73,14 @@ const NewBoard = ({
     setIsDataCached(false);
 
     try {
-      const apiKey = import.meta.env.VITE_NEWS_API;
-
-      if (!apiKey || apiKey === 'your_newsapi_key_here') {
-        const filteredSamples = SAMPLE_NEWS.filter(
-          (item) => item.category.includes(queryCategory) || queryCategory === 'general'
-        );
-        const fallbackSet = filteredSamples.length > 0 ? filteredSamples : SAMPLE_NEWS;
-        setArticles(fallbackSet);
-        setCacheItem(cacheKey, fallbackSet, CACHE_TTL.NEWS_CATEGORY);
-        setLoading(false);
-        return;
-      }
-
-      const url = `https://api.currentsapi.services/v1/latest-news?language=en&category=${encodeURIComponent(queryCategory)}&apiKey=${apiKey}`;
-      const response = await fetch(url, { signal });
+      const response = await fetch(
+        `/api/news?type=latest&category=${encodeURIComponent(queryCategory)}`,
+        { signal }
+      );
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data?.message || `Currents API error (${response.status})`);
+        throw new Error(data?.message || `News service error (${response.status})`);
       }
 
       const rawNews = data?.news || [];
@@ -143,14 +92,15 @@ const NewBoard = ({
           article.description.length > 20
       );
 
-      const finalArticles = cleanArticles.length > 0 ? cleanArticles : SAMPLE_NEWS;
-
-      setCacheItem(cacheKey, finalArticles, CACHE_TTL.NEWS_CATEGORY);
-      setArticles(finalArticles);
+      if (cleanArticles.length > 0) {
+        setCacheItem(cacheKey, cleanArticles, CACHE_TTL.NEWS_CATEGORY);
+      }
+      setArticles(cleanArticles);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      console.warn('[NewBoard] Network fetch failed, using fallback articles:', err.message);
-      setArticles(SAMPLE_NEWS);
+      console.warn('[NewBoard] News fetch failed:', err.message);
+      setError(err.message || 'Failed to load news.');
+      setArticles([]);
     } finally {
       if (signal && !signal.aborted) {
         setLoading(false);
@@ -176,23 +126,10 @@ const NewBoard = ({
     setIsDataCached(false);
 
     try {
-      const apiKey = import.meta.env.VITE_NEWS_API;
-
-      if (!apiKey || apiKey === 'your_newsapi_key_here') {
-        const matches = SAMPLE_NEWS.filter(
-          (a) =>
-            a.title.toLowerCase().includes(cleanQuery) ||
-            a.description.toLowerCase().includes(cleanQuery)
-        );
-        const results = matches.length > 0 ? matches : SAMPLE_NEWS;
-        setArticles(results);
-        setCacheItem(cacheKey, results, CACHE_TTL.NEWS_SEARCH);
-        setLoading(false);
-        return;
-      }
-
-      const url = `https://api.currentsapi.services/v1/search?language=en&keywords=${encodeURIComponent(cleanQuery)}&apiKey=${apiKey}`;
-      const response = await fetch(url, { signal });
+      const response = await fetch(
+        `/api/news?type=search&keywords=${encodeURIComponent(cleanQuery)}`,
+        { signal }
+      );
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
